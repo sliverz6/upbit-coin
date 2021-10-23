@@ -129,6 +129,8 @@ if __name__ == "__main__":
                 for ticker in target_list:
                     buy_coin("KRW-" + ticker)
                     time.sleep(1)
+            elif now.minute == 0:
+                print_log(f"주문 가능 금액: {available_balance} | 보유 코인: {bought_list}")
             else:
                 print("루틴 종료 => 초기화")
                 sell_all()
