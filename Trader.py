@@ -57,6 +57,34 @@ def get_movingaverage(ticker, window):
         return None
 
 
+def init_ticker_list():
+    """관찰 종목 리스트 초기화"""
+    my_tickers = []
+    tickers = pyupbit.get_tickers("KRW")
+    for ticker in tickers:
+        try:
+            print(ticker)
+            current_price = pyupbit.get_current_price(ticker)
+            moving_3, moving_5, moving_10, moving_20 = get_movingaverage(ticker, 3), get_movingaverage(ticker, 5), \
+                                                       get_movingaverage(ticker, 10), get_movingaverage(ticker, 20)
+            if current_price > moving_3 and current_price > moving_5 and current_price > moving_10 and current_price > moving_20:
+                my_tickers.append(ticker)
+            time.sleep(0.2)
+        except Exception as ex:
+            print_log(f"init_ticker_list() -> 예외 발생! {ex}")
+    return my_tickers
+
+
+def get_buy_percentage():
+    """투자 비율 리턴"""
+    yesterday_volatility = get_yesterday_volatility(ticker)
+    if len(target_list) < limit_amount:
+        buy_percentage = target_volatility / yesterday_volatility / limit_amount
+    else:
+        buy_percentage = target_volatility / yesterday_volatility / len(target_list)
+    return buy_percentage
+
+
 def buy_coin(ticker):
     """매수 주문 함수"""
     try:
@@ -66,15 +94,15 @@ def buy_coin(ticker):
 
         target_price = get_target_price(ticker)  # 목표가
         current_price = pyupbit.get_current_price(ticker)  # 현재가
-        ma5_price = get_movingaverage(ticker, window=5)  # 5일 이동평균가
+        # ma5_price = get_movingaverage(ticker, window=5)  # 5일 이동평균가
 
         # 매수 조건 확인
-        if current_price > target_price and current_price > ma5_price:
+        # if current_price > target_price and current_price > ma5_price:
+        if current_price > target_price:
             print(f"{ticker} 매수 조건 통과!")
 
             # 투자 금액 => 자산 * ((목표 변동성 / 전일 변동성) / 투자 대상 코인 수)
-            yesterday_volatility = get_yesterday_volatility(ticker)
-            buy_percentage = target_volatility / yesterday_volatility / len(target_list)
+            buy_percentage = get_buy_percentage()
             buy_price = int(buy_percentage * available_balance)
 
             # 지정가 주문
@@ -111,8 +139,10 @@ if __name__ == "__main__":
         print_log("업비트 자동매매 접속")
 
         ##### 변수 #####
-        target_list = ["BTC", "ETH", "XRP", "BTG", "BCH", "ETC"]  # 후보 리스트
+        # target_list = ["BTC", "ETH", "XRP", "BTG", "BCH", "ETC"]  # 후보 리스트
+        target_list = init_ticker_list()  # 후보 리스트 초기화
         target_volatility = 2  # 목표 변동성(%)
+        limit_amount = 5  # 매수할 최소 종목 수
         ###############
 
         bought_list = []  # 매수 완료 리스트
